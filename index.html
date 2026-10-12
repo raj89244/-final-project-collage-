@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Tailor — Find Expert Tailors & Book Stitching Services</title>
+    <meta name="description"
+        content="Smart Tailor connects you with expert local tailors for custom clothing, alterations, and perfect fits. Book online and track your orders.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:center;">
+                <div>
+                    <div
+                        style="display:inline-block;background:var(--primary-light);color:var(--primary);padding:0.4rem 1rem;border-radius:var(--radius-pill);font-weight:600;font-size:0.85rem;margin-bottom:1.5rem;">
+                        <i class="fa-solid fa-star" style="color:var(--accent);margin-right:5px;"></i> #1 Tailoring
+                        Platform
+                    </div>
+                    <h1>Bespoke Stitching, <br><span class="text-gradient">Delivered to You.</span></h1>
+                    <p style="margin-bottom:2rem;">Connect with expert local tailors for custom clothing, alterations,
+                        and perfect fits. Book online, provide measurements, and track your order effortlessly.</p>
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                        <a href="register.html" class="btn-primary-custom" style="padding:1rem 2.5rem;font-size:1rem;">
+                            <i class="fa-solid fa-arrow-right"></i> Get Started
+                        </a>
+                        <a href="#how-it-works" class="btn-secondary-custom"
+                            style="padding:1rem 2.5rem;font-size:1rem;">
+                            How it Works
+                        </a>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:1rem;margin-top:2.5rem;">
+                        <div style="display:flex;gap:2px;">
+                            <i class="fa-solid fa-star" style="color:var(--accent);"></i>
+                            <i class="fa-solid fa-star" style="color:var(--accent);"></i>
+                            <i class="fa-solid fa-star" style="color:var(--accent);"></i>
+                            <i class="fa-solid fa-star" style="color:var(--accent);"></i>
+                            <i class="fa-solid fa-star" style="color:var(--accent);"></i>
+                        </div>
+                        <span style="font-weight:600;font-size:0.9rem;">Trusted by 5,000+ Customers</span>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-card">
+                        <i class="fa-solid fa-scissors"></i>
+                        <h3>Premium Tailoring</h3>
+                        <p class="text-muted">Experience the perfect fit, tailored just for you.</p>
+                    </div>
+                    <div class="floating-badge left">
+                        <div
+                            style="width:40px;height:40px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;">
+                            <i class="fa-solid fa-check" style="color:var(--success);"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.9rem;">100+ Tailors</div>
+                            <div style="font-size:0.75rem;color:var(--gray);">Ready to stitch</div>
+                        </div>
+                    </div>
+                    <div class="floating-badge right">
+                        <div
+                            style="width:40px;height:40px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;">
+                            <i class="fa-solid fa-heart" style="color:var(--primary);"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.9rem;">4.9 Rating</div>
+                            <div style="font-size:0.75rem;color:var(--gray);">Customer Love</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section id="how-it-works" class="section section-alt">
+        <div class="container">
+            <div class="section-title">
+                <h2>How Smart Tailor Works</h2>
+                <p>Your custom outfit in four simple steps</p>
+            </div>
+            <div class="grid-4">
+                <div class="feature-card">
+                    <div class="icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <h4>1. Find a Tailor</h4>
+                    <p>Browse our network of expert tailors based on your needs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fa-solid fa-ruler-combined"></i></div>
+                    <h4>2. Give Measurements</h4>
+                    <p>Provide your custom measurements online easily.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fa-solid fa-calendar-check"></i></div>
+                    <h4>3. Book Service</h4>
+                    <p>Confirm your booking and set your delivery date.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fa-solid fa-truck-fast"></i></div>
+                    <h4>4. Track & Receive</h4>
+                    <p>Track your order status until it's ready for delivery.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Find Your Perfect Tailor -->
+    <section id="find-tailor" class="section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Find Your Perfect Tailor</h2>
+                <p>Browse top-rated tailors ready to stitch your perfect outfit</p>
+            </div>
+            <div class="grid-3" id="tailorsList">
+                <div class="text-center p-3" style="grid-column:1/-1;">
+                    <div class="spinner"></div>
+                    <p class="text-muted">Loading tailors...</p>
+                </div>
+            </div>
+            <div style="text-align:center; margin-top:2.5rem;">
+                <a href="login.html" class="btn-secondary-custom">View All Tailors</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Us -->
+    <section id="about" class="section section-alt">
+        <div class="container">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;">
+                <div>
+                    <div class="section-title" style="text-align:left;margin-bottom:1.5rem;">
+                        <h2>About Smart Tailor</h2>
+                        <p>Connecting skilled tailors with customers since 2026</p>
+                    </div>
+                    <p style="color:var(--gray);margin-bottom:1.5rem;line-height:1.8;">
+                        Smart Tailor is a modern platform that bridges the gap between customers and talented tailors.
+                        Whether you need a custom suit, shirt stitching, pant alterations, or any tailoring service,
+                        we make it easy to find the right tailor, provide your measurements, and get your
+                        garments stitched to perfection.
+                    </p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.2rem;"></i>
+                            <span style="font-weight:500;">Verified Tailors</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.2rem;"></i>
+                            <span style="font-weight:500;">Easy Booking</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.2rem;"></i>
+                            <span style="font-weight:500;">Secure Payments</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.2rem;"></i>
+                            <span style="font-weight:500;">Order Tracking</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align:center;">
+                    <div class="card-custom" style="padding:3rem;">
+                        <i class="fa-solid fa-shirt"
+                            style="font-size:5rem;color:var(--primary);margin-bottom:1.5rem;display:block;"></i>
+                        <h3>Quality Tailoring</h3>
+                        <p class="text-muted">Every stitch made with precision and care</p>
+                        <div style="display:flex;justify-content:center;gap:2rem;margin-top:2rem;">
+                            <div>
+                                <h2 class="text-gradient" style="margin-bottom:0;">500+</h2>
+                                <small class="text-muted">Orders Done</small>
+                            </div>
+                            <div>
+                                <h2 class="text-gradient" style="margin-bottom:0;">100+</h2>
+                                <small class="text-muted">Tailors</small>
+                            </div>
+                            <div>
+                                <h2 class="text-gradient" style="margin-bottom:0;">4.9</h2>
+                                <small class="text-muted">Rating</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section
+        style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));padding:4rem 0;text-align:center;color:#fff;">
+        <div class="container">
+            <h2 style="color:#fff;margin-bottom:1rem;">Ready to get started?</h2>
+            <p style="opacity:0.85;font-size:1.1rem;margin-bottom:2rem;">Join thousands of happy customers or register
+                as a tailor today.</p>
+            <a href="register.html" class="btn-primary-custom"
+                style="background:var(--white);color:var(--primary);box-shadow:var(--shadow-lg);">
+                <i class="fa-solid fa-arrow-right"></i> Sign Up Now
+            </a>
+        </div>
+    </section>
+
+    <div id="footer-container"></div>
+
+    <script src="js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initPage('home');
+        });
+    </script>
+</body>
+
+</html>

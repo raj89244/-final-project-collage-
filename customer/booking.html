@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Service — Smart Tailor</title>
+    <meta name="description" content="Book a tailoring service with your chosen tailor.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="page-header">
+        <div class="container">
+            <h1><i class="fa-solid fa-calendar-plus" style="margin-right:10px;"></i> Book a Service</h1>
+            <p id="tailorInfo">Select your service and preferred time</p>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top:2rem; max-width:700px;">
+        <div id="alert-container"></div>
+
+        <div class="card-custom" style="padding:2rem;">
+            <!-- Selected Tailor Badge -->
+            <div
+                style="background:var(--primary-light);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:2rem;display:flex;align-items:center;gap:12px;">
+                <div
+                    style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-store" style="color:#fff;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <strong id="shopNameDisplay" style="display:block;">Loading...</strong>
+                    <small class="text-muted">Your selected tailor</small>
+                </div>
+            </div>
+
+            <form id="bookingForm">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-scissors" style="margin-right:5px;color:var(--primary);"></i> Service
+                        Type *</label>
+                    <select id="service_type" required>
+                        <option value="">— Loading this tailor's services —</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-calendar" style="margin-right:5px;color:var(--primary);"></i>
+                            Booking Date *</label>
+                        <input type="date" id="booking_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-clock" style="margin-right:5px;color:var(--primary);"></i> Booking
+                            Time *</label>
+                        <input type="time" id="booking_time" required min="09:00" max="21:00">
+                        <small class="text-muted">Shop hours: 9:00 AM – 9:00 PM only</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fa-solid fa-house" style="margin-right:5px;color:var(--primary);"></i> Service Mode
+                        *</label>
+                    <div style="display:flex;gap:1rem;margin-top:0.5rem;">
+                        <label class="payment-option" style="flex:1;cursor:pointer;" id="modeShop">
+                            <input type="radio" name="service_mode" value="Visit Tailor Shop" checked
+                                style="display:none;">
+                            <div class="pay-icon" style="background:#D1FAE5;color:var(--success);">
+                                <i class="fa-solid fa-store"></i>
+                            </div>
+                            <div>
+                                <strong style="display:block;">Visit Tailor Shop</strong>
+                                <small class="text-muted">Tailor takes measurements in-shop, then you pay</small>
+                            </div>
+                        </label>
+                        <label class="payment-option" style="flex:1;cursor:pointer;" id="modeHome">
+                            <input type="radio" name="service_mode" value="Home Service" style="display:none;">
+                            <div class="pay-icon" style="background:var(--primary-light);color:var(--primary);">
+                                <i class="fa-solid fa-house"></i>
+                            </div>
+                            <div>
+                                <strong style="display:block;">Home Service</strong>
+                                <small class="text-muted">Pay ₹100 visit charge now, rest after measurement</small>
+                            </div>
+                        </label>
+                    </div>
+                    <p class="text-muted" style="font-size:0.82rem;margin-top:0.6rem;">
+                        <i class="fa-solid fa-circle-info"></i>
+                        For <strong>Home Service</strong>, you'll pay a ₹100 visit charge now to confirm the booking — the
+                        remaining service amount is only collected after the tailor visits and takes your measurements.
+                        For a <strong>Shop Visit</strong>, no payment is needed until the tailor takes your measurements
+                        at the shop.
+                    </p>
+                </div>
+
+                <button type="submit" class="btn-primary-custom w-100 mt-3" id="bookBtn"
+                    style="justify-content:center;padding:1rem;font-size:1rem;">
+                    <i class="fa-solid fa-check-circle"></i> Book Now
+                </button>
+            </form>
+        </div>
+
+        <div style="text-align:center;margin-top:1.5rem;">
+            <a href="dashboard.html" class="btn-secondary-custom btn-sm-custom">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const tailorId = params.get('tailor_id');
+        const shopName = params.get('shop_name') || 'Tailor';
+
+        // Set min date to today
+        const today = new Date().toISOString().split('T')[0];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await initPage('home', true, ['customer']);
+            if (!user) return;
+
+            if (!tailorId) {
+                showAlert('No tailor selected. Please go back and select a tailor.', 'error');
+                return;
+            }
+
+            document.getElementById('shopNameDisplay').textContent = decodeURIComponent(shopName);
+            document.getElementById('tailorInfo').textContent = 'Booking with ' + decodeURIComponent(shopName);
+            document.getElementById('booking_date').min = today;
+
+            await loadTailorServices();
+
+            // Service mode selection
+            const modeOptions = document.querySelectorAll('[name="service_mode"]');
+            modeOptions.forEach(radio => {
+                radio.closest('.payment-option').addEventListener('click', function () {
+                    document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                });
+            });
+            document.getElementById('modeShop').classList.add('selected');
+
+            // Submit booking
+            document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('bookBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:3px;margin:0;"></div> Booking...';
+
+                const serviceMode = document.querySelector('[name="service_mode"]:checked').value;
+                const bookingTime = document.getElementById('booking_time').value;
+
+                // Shop hours check (9:00 AM – 9:00 PM) — mirrors the server-side check
+                if (bookingTime < '09:00' || bookingTime > '21:00') {
+                    showAlert('Please choose a booking time between 9:00 AM and 9:00 PM.', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Book Now';
+                    return;
+                }
+
+                try {
+                    const result = await fetchAPI('booking.php', 'POST', {
+                        tailor_id: parseInt(tailorId),
+                        service_type: document.getElementById('service_type').value,
+                        booking_date: document.getElementById('booking_date').value,
+                        booking_time: bookingTime,
+                        service_mode: serviceMode
+                    });
+
+                    if (result.success) {
+                        // Home Service bookings need the ₹100 advance paid right away;
+                        // Shop Visit bookings wait until the tailor marks measurements done.
+                        if (result.data.payment_stage === 'awaiting_advance') {
+                            window.location.href = 'payment.html?id=' + result.data.booking_id;
+                        } else {
+                            window.location.href = 'order_summary.html?id=' + result.data.booking_id;
+                        }
+                    }
+                } catch (err) {
+                    showAlert(err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Book Now';
+                }
+            });
+        });
+
+        // Only show service types this specific tailor actually offers,
+        // instead of a fixed generic list, now that tailors pick their
+        // services from a dropdown at registration.
+        const DEFAULT_SERVICES = ['Shirt Stitching', 'Pant Stitching', 'Suit Stitching', 'Alteration'];
+
+        async function loadTailorServices() {
+            const select = document.getElementById('service_type');
+            let services = DEFAULT_SERVICES;
+            let servicePrices = {};
+            try {
+                const result = await fetchAPI(`tailors.php?id=${encodeURIComponent(tailorId)}`);
+                const tailor = (result.data || [])[0];
+                if (tailor) {
+                    if (tailor.services) {
+                        services = tailor.services.split(',').map(s => s.trim()).filter(Boolean);
+                    }
+                    if (tailor.service_prices) {
+                        servicePrices = tailor.service_prices;
+                    }
+                }
+            } catch (err) {
+                // Falls back to DEFAULT_SERVICES below if this lookup fails for any reason.
+            }
+
+            select.innerHTML = '<option value="">\u2014 Select a service \u2014</option>' +
+                services.map(s => {
+                    const priceLabel = servicePrices[s] ? ` \u2014 \u20b9${parseFloat(servicePrices[s]).toFixed(0)}` : '';
+                    return `<option value="${s}">${s}${priceLabel}</option>`;
+                }).join('');
+        }
+    </script>
+</body>
+
+</html>

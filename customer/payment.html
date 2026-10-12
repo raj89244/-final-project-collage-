@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment — Smart Tailor</title>
+    <meta name="description" content="Complete your payment for the tailoring service.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="page-header">
+        <div class="container">
+            <h1><i class="fa-solid fa-credit-card" style="margin-right:10px;"></i> Payment</h1>
+            <p>Choose your payment method</p>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top:2rem; max-width:600px;">
+        <div id="alert-container"></div>
+
+        <!-- Waiting-on-measurement state (nothing payable right now) -->
+        <div class="card-custom" style="padding:2.5rem;text-align:center;display:none;" id="waitingSection">
+            <i class="fa-solid fa-ruler-combined" style="font-size:2.6rem;color:var(--warning);margin-bottom:1rem;"></i>
+            <h3>Waiting for Measurements</h3>
+            <p class="text-muted" style="max-width:420px;margin:0.5rem auto 0;" id="waitingMsg">
+                Your tailor needs to take your measurements before this payment unlocks. You'll be able to pay as soon
+                as that's done — check back here or from your booking page.
+            </p>
+            <a href="order_summary.html?id=" id="waitingOrderLink" class="btn-secondary-custom mt-3" style="display:inline-flex;">
+                <i class="fa-solid fa-eye"></i> View Booking Status
+            </a>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="card-custom" style="padding:2rem;display:none;" id="paymentSection">
+            <div style="background:var(--bg);border-radius:var(--radius);padding:1.2rem;margin-bottom:1.2rem;">
+                <div class="flex-between">
+                    <span class="text-muted">Booking #<span id="bookingId">—</span></span>
+                    <span style="font-weight:700;font-size:1.2rem;color:var(--primary);" id="totalAmount">₹0</span>
+                </div>
+                <div style="margin-top:0.5rem;font-size:0.9rem;">
+                    <span id="serviceInfo" class="text-muted">Loading...</span>
+                </div>
+            </div>
+
+            <div id="stageBanner" style="display:none;background:#EEF2FF;border-radius:var(--radius);padding:0.9rem 1.1rem;margin-bottom:1.5rem;font-size:0.88rem;color:var(--primary);">
+                <i class="fa-solid fa-circle-info"></i> <span id="stageBannerText"></span>
+            </div>
+
+            <h4 style="margin-bottom:1rem;">Select Payment Method</h4>
+
+            <div class="payment-option selected" id="optionCOD" onclick="selectPayment('Cash on Delivery')">
+                <input type="radio" name="payment_method" value="Cash on Delivery" checked style="display:none;">
+                <div class="pay-icon" style="background:#FEF3C7;color:var(--warning);">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <div>
+                    <strong style="display:block;">Cash on Delivery</strong>
+                    <small class="text-muted">Pay when you receive your garment</small>
+                </div>
+            </div>
+
+            <div style="height:1rem;"></div>
+
+            <div class="payment-option" id="optionOnline" onclick="selectPayment('Online Payment')">
+                <input type="radio" name="payment_method" value="Online Payment" style="display:none;">
+                <div class="pay-icon" style="background:#DBEAFE;color:var(--secondary);">
+                    <i class="fa-solid fa-globe"></i>
+                </div>
+                <div>
+                    <strong style="display:block;">Online Payment (Demo)</strong>
+                    <small class="text-muted">Simulated online payment for demo</small>
+                </div>
+            </div>
+
+            <button class="btn-success-custom w-100 mt-4" id="payBtn" onclick="processPayment()"
+                style="padding:1rem;font-size:1rem;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fa-solid fa-lock"></i> Confirm Payment
+            </button>
+        </div>
+
+        <!-- Success Section -->
+        <div id="successSection" style="display:none;">
+            <div class="success-page" style="min-height:auto;padding:3rem 0;">
+                <div>
+                    <div class="success-icon">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h2 style="margin-bottom:0.5rem;">Payment Successful!</h2>
+                    <p class="text-muted" style="margin-bottom:0.5rem;">Your payment has been processed successfully.</p>
+                    <p class="text-muted" style="margin-bottom:2rem;">Transaction ID: <strong id="txnId">—</strong></p>
+                    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;">
+                        <button onclick="downloadBillPDF()" class="btn-success-custom">
+                            <i class="fa-solid fa-file-pdf"></i> Download Bill
+                        </button>
+                    </div>
+                    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+                        <a href="order_summary.html?id=" id="viewOrderLink" class="btn-primary-custom">
+                            <i class="fa-solid fa-eye"></i> View Order
+                        </a>
+                        <a href="dashboard.html" class="btn-secondary-custom">
+                            <i class="fa-solid fa-home"></i> Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        let selectedMethod = 'Cash on Delivery';
+        let bookingIdValue = '';
+        let orderData = null;
+
+        function selectPayment(method) {
+            selectedMethod = method;
+            document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+            if (method === 'Cash on Delivery') {
+                document.getElementById('optionCOD').classList.add('selected');
+            } else {
+                document.getElementById('optionOnline').classList.add('selected');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await initPage('home', true, ['customer']);
+            if (!user) return;
+
+            bookingIdValue = new URLSearchParams(window.location.search).get('id');
+            if (!bookingIdValue) {
+                showAlert('No booking specified.', 'error');
+                return;
+            }
+
+            await refreshOrder();
+        });
+
+        const STAGE_LABELS = {
+            awaiting_advance: 'This is the ₹100 home-visit charge — it confirms your booking so the tailor can come take measurements.',
+            awaiting_final_payment: 'Measurements are done! This is the final service amount for your Home Service order.',
+            awaiting_payment: 'Measurements are done! This is the full service amount for your Shop Visit order.',
+        };
+
+        async function refreshOrder() {
+            try {
+                const result = await fetchAPI('payment.php?booking_id=' + bookingIdValue);
+                orderData = result.data;
+                renderPaymentState();
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+
+        function renderPaymentState() {
+            document.getElementById('paymentSection').style.display = 'none';
+            document.getElementById('waitingSection').style.display = 'none';
+            document.getElementById('successSection').style.display = 'none';
+
+            document.getElementById('waitingOrderLink').href = 'order_summary.html?id=' + orderData.id;
+            document.getElementById('viewOrderLink').href = 'order_summary.html?id=' + orderData.id;
+
+            if (orderData.payment_stage === 'paid') {
+                // Show the most recent completed payment as the receipt
+                const last = (orderData.payments || []).slice(-1)[0];
+                document.getElementById('successSection').style.display = 'block';
+                document.getElementById('txnId').textContent = last ? last.transaction_id : 'N/A';
+                return;
+            }
+
+            if (orderData.payment_stage === 'awaiting_measurement') {
+                document.getElementById('waitingSection').style.display = 'block';
+                document.getElementById('waitingMsg').textContent =
+                    orderData.service_mode === 'Home Service'
+                        ? "Your advance is paid — now waiting for the tailor to visit and take your measurements. You'll pay the remaining amount once that's done."
+                        : "Visit the shop so your tailor can take your measurements. Once that's recorded, you'll be able to pay here.";
+                return;
+            }
+
+            // Something is payable right now (advance, final, or full)
+            document.getElementById('paymentSection').style.display = 'block';
+            document.getElementById('bookingId').textContent = orderData.id;
+            document.getElementById('totalAmount').textContent = formatPrice(orderData.amount_due);
+            document.getElementById('serviceInfo').textContent = orderData.service_type + ' — ' + orderData.shop_name +
+                ' (' + orderData.service_mode + ')';
+
+            const stageText = STAGE_LABELS[orderData.payment_stage];
+            if (stageText) {
+                document.getElementById('stageBanner').style.display = 'block';
+                document.getElementById('stageBannerText').textContent = stageText;
+            }
+        }
+
+        async function processPayment() {
+            const btn = document.getElementById('payBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:3px;margin:0;"></div> Processing...';
+
+            try {
+                const result = await fetchAPI('payment.php', 'POST', {
+                    booking_id: parseInt(bookingIdValue),
+                    payment_method: selectedMethod
+                });
+
+                if (result.success) {
+                    await refreshOrder();
+                    document.getElementById('txnId').textContent = result.data.transaction_id;
+
+                    // Home Service advance just paid → this booking now waits on
+                    // the tailor to visit; the "waiting" state above already
+                    // reflects that after refreshOrder(), so nothing else to do.
+                }
+            } catch (err) {
+                showAlert(err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Confirm Payment';
+            }
+        }
+
+        function downloadBillPDF() {
+            if (!orderData) return;
+            const payments = orderData.payments || [];
+            const lastPayment = payments.slice(-1)[0] || {};
+            const totalPaid = payments.filter(p => p.payment_status === 'completed')
+                .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageW = 210;
+            const leftX = 20;
+            const rightX = pageW - 20;
+            const colRight = 120;
+            let y = 0;
+
+            // ===== HEADER =====
+            doc.setFillColor(79, 70, 229);
+            doc.rect(0, 0, pageW, 50, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(26);
+            doc.setFont(undefined, 'bold');
+            doc.text('Smart Tailor', leftX, 22);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('PAYMENT INVOICE', leftX, 34);
+            // Invoice number on right
+            doc.setFontSize(11);
+            doc.text('Invoice #INV-' + String(orderData.id).padStart(4, '0'), rightX, 22, { align: 'right' });
+            doc.text('Date: ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }), rightX, 34, { align: 'right' });
+            doc.text('Booking #' + orderData.id, rightX, 44, { align: 'right' });
+
+            y = 62;
+
+            // ===== SECTION 1: SHOP / TAILOR DETAILS =====
+            doc.setFillColor(245, 245, 255);
+            doc.rect(leftX, y - 6, pageW - 40, 42, 'F');
+            doc.setDrawColor(79, 70, 229);
+            doc.setLineWidth(0.5);
+            doc.line(leftX, y - 6, leftX, y + 36);
+
+            doc.setTextColor(79, 70, 229);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('TAILOR SHOP DETAILS', leftX + 8, y + 2);
+
+            doc.setTextColor(30, 41, 59);
+            doc.setFontSize(13);
+            doc.setFont(undefined, 'bold');
+            doc.text(orderData.shop_name || 'N/A', leftX + 8, y + 12);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(80, 80, 80);
+            doc.text('Owner: ' + (orderData.owner_name || 'N/A'), leftX + 8, y + 20);
+            doc.text('Address: ' + (orderData.shop_address || orderData.address || 'N/A'), leftX + 8, y + 27);
+            doc.text('Phone: ' + (orderData.tailor_phone || 'N/A'), leftX + 8, y + 34);
+
+            y += 52;
+
+            // ===== SECTION 2: CUSTOMER & BOOKING DETAILS =====
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.3);
+            doc.line(leftX, y, rightX, y);
+            y += 10;
+
+            // Customer info (left column)
+            doc.setTextColor(79, 70, 229);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('CUSTOMER DETAILS', leftX, y);
+
+            doc.setTextColor(79, 70, 229);
+            doc.text('BOOKING DETAILS', colRight, y);
+            y += 8;
+
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(30, 41, 59);
+
+            const custDetails = [
+                'Name: ' + (orderData.customer_name || 'N/A'),
+                'Phone: ' + (orderData.customer_phone || 'N/A'),
+                'Email: ' + (orderData.customer_email || 'N/A'),
+                'Address: ' + (orderData.customer_address || 'N/A')
+            ];
+            custDetails.forEach(line => {
+                doc.text(line, leftX, y);
+                y += 7;
+            });
+
+            // Booking info (right column) - reset y
+            let yRight = y - (custDetails.length * 7);
+            const bookDetails = [
+                'Booking ID: #' + orderData.id,
+                'Date: ' + (orderData.booking_date || 'N/A'),
+                'Time: ' + (orderData.booking_time || 'N/A'),
+                'Delivery: ' + (orderData.delivery_date || 'To be confirmed')
+            ];
+            bookDetails.forEach(line => {
+                doc.text(line, colRight, yRight);
+                yRight += 7;
+            });
+
+            y = Math.max(y, yRight) + 5;
+
+            // ===== SECTION 3: SERVICE TABLE =====
+            doc.setDrawColor(226, 232, 240);
+            doc.line(leftX, y, rightX, y);
+            y += 8;
+
+            // Table header
+            doc.setFillColor(245, 245, 255);
+            doc.rect(leftX, y - 4, pageW - 40, 12, 'F');
+            doc.setTextColor(79, 70, 229);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('SERVICE', leftX + 5, y + 3);
+            doc.text('MODE', 95, y + 3);
+            doc.text('AMOUNT', rightX - 5, y + 3, { align: 'right' });
+            y += 14;
+
+            // Table row
+            doc.setTextColor(30, 41, 59);
+            doc.setFont(undefined, 'normal');
+            doc.text(orderData.service_type || 'N/A', leftX + 5, y);
+            doc.text(orderData.service_mode || 'N/A', 95, y);
+            const paymentTypeLabel = { advance: 'Home Visit Charge', final: 'Final Payment', full: 'Full Payment' }[lastPayment.payment_type] || 'Payment';
+            const priceStr = 'Rs. ' + parseFloat(lastPayment.amount || orderData.amount_due || 0).toFixed(2) + ' (' + paymentTypeLabel + ')';
+            doc.setFont(undefined, 'bold');
+            doc.text(priceStr, rightX - 5, y, { align: 'right' });
+            y += 10;
+
+            // Separator
+            doc.setDrawColor(226, 232, 240);
+            doc.line(leftX, y, rightX, y);
+            y += 8;
+
+            // ===== TOTAL BOX =====
+            doc.setFillColor(79, 70, 229);
+            doc.roundedRect(colRight - 10, y - 4, rightX - colRight + 15, 20, 3, 3, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('THIS PAYMENT', colRight, y + 8);
+            doc.setFontSize(14);
+            doc.text('Rs. ' + parseFloat(lastPayment.amount || orderData.amount_due || 0).toFixed(2), rightX, y + 8, { align: 'right' });
+
+            y += 30;
+
+            // ===== PAYMENT INFO =====
+            doc.setTextColor(100, 116, 139);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            const txnId = lastPayment.transaction_id || document.getElementById('txnId').textContent || 'N/A';
+            const payMethod = lastPayment.payment_method || selectedMethod || 'N/A';
+            const payStatus = lastPayment.payment_status ? lastPayment.payment_status.toUpperCase() : 'COMPLETED';
+            const paidAt = lastPayment.paid_at ? new Date(lastPayment.paid_at).toLocaleString('en-IN') : new Date().toLocaleString('en-IN');
+
+            doc.text('Transaction ID: ' + txnId, leftX, y);
+            doc.text('Payment Method: ' + payMethod, leftX, y + 6);
+            doc.text('Status: ' + payStatus, leftX, y + 12);
+            doc.text('Paid On: ' + paidAt, leftX, y + 18);
+            if (payments.length > 1) {
+                doc.text('Total Paid So Far (all stages): Rs. ' + totalPaid.toFixed(2), leftX, y + 24);
+            }
+
+            // ===== FOOTER =====
+            y += 35;
+            doc.setDrawColor(226, 232, 240);
+            doc.line(leftX, y, rightX, y);
+            y += 8;
+            doc.setTextColor(148, 163, 184);
+            doc.setFontSize(9);
+            doc.text('Thank you for choosing Smart Tailor!', 105, y, { align: 'center' });
+            doc.text('This is a computer-generated invoice and does not require a signature.', 105, y + 6, { align: 'center' });
+            doc.text('support@smarttailor.com | +91 98765 43210', 105, y + 12, { align: 'center' });
+
+            doc.save('SmartTailor_Invoice_' + orderData.id + '.pdf');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard — Smart Tailor</title>
+    <meta name="description" content="Browse tailors, manage bookings, and track your orders.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <h1 id="welcomeMsg">Welcome back!</h1>
+            <p>Customer Dashboard — Find tailors and manage your bookings</p>
+        </div>
+    </div>
+
+    <div class="container dashboard-container" style="padding-top:2rem;">
+        <div id="alert-container"></div>
+
+        <!-- Stats Row -->
+        <div class="grid-3 mb-4" id="statsRow">
+            <div class="stat-card">
+                <div class="stat-icon primary"><i class="fa-solid fa-box"></i></div>
+                <div>
+                    <h3 id="totalOrders">0</h3>
+                    <p>Total Orders</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon warning"><i class="fa-solid fa-clock"></i></div>
+                <div>
+                    <h3 id="activeOrders">0</h3>
+                    <p>Active Orders</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon success"><i class="fa-solid fa-check-double"></i></div>
+                <div>
+                    <h3 id="completedOrders">0</h3>
+                    <p>Completed</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tailor Listing Section -->
+        <div class="card-custom mb-4">
+            <div class="flex-between p-3" style="border-bottom:1px solid var(--gray-lighter); flex-wrap:wrap; gap:0.8rem;">
+                <h3><i class="fa-solid fa-store" style="color:var(--primary);margin-right:10px;"></i>Available Tailors
+                </h3>
+                <div id="categoryFilter" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn active" data-category="" onclick="filterByCategory('')">All</button>
+                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn" data-category="Men" onclick="filterByCategory('Men')"><i class="fa-solid fa-person"></i> Men</button>
+                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn" data-category="Women" onclick="filterByCategory('Women')"><i class="fa-solid fa-person-dress"></i> Women</button>
+                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn" data-category="Kids" onclick="filterByCategory('Kids')"><i class="fa-solid fa-child"></i> Kids</button>
+                </div>
+            </div>
+
+            <!-- Full filter system: search, city, rating, price, sort -->
+            <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--gray-lighter); display:flex; gap:0.8rem; flex-wrap:wrap; align-items:center;">
+                <div class="input-icon" style="flex:1; min-width:220px; margin-bottom:0;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search by shop, owner, or service..." oninput="debouncedFilter()">
+                </div>
+                <select id="cityFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:150px;">
+                    <option value="">All Cities</option>
+                </select>
+                <select id="ratingFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:140px;">
+                    <option value="0">Any Rating</option>
+                    <option value="4.5">4.5 &amp; up</option>
+                    <option value="4">4.0 &amp; up</option>
+                    <option value="3">3.0 &amp; up</option>
+                </select>
+                <select id="priceFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:160px;">
+                    <option value="">Any Price</option>
+                </select>
+                <select id="sortFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:160px;">
+                    <option value="">Newest First</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="price_low">Price: Low to High</option>
+                    <option value="price_high">Price: High to Low</option>
+                </select>
+            </div>
+
+            <div style="padding:1.5rem;">
+                <div class="grid-3" id="tailorsList">
+                    <div class="text-center p-3">
+                        <div class="spinner"></div>
+                        <p class="text-muted">Loading tailors...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Bookings -->
+        <div class="card-custom mb-4">
+            <div class="flex-between p-3" style="border-bottom:1px solid var(--gray-lighter);">
+                <h3><i class="fa-solid fa-clipboard-list" style="color:var(--primary);margin-right:10px;"></i>My
+                    Bookings</h3>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Tailor Shop</th>
+                            <th>Service</th>
+                            <th>Date & Time</th>
+                            <th>Mode</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingsTable">
+                        <tr>
+                            <td colspan="7" class="text-center p-3 text-muted">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await initPage('home', true, ['customer']);
+            if (!user) return;
+
+            document.getElementById('welcomeMsg').textContent = 'Welcome, ' + user.full_name + '!';
+            loadFilterOptions();
+            loadTailors();
+            loadBookings();
+        });
+
+        let activeCategory = '';
+        let searchDebounceTimer = null;
+
+        function filterByCategory(category) {
+            activeCategory = category;
+            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === category);
+            });
+            loadTailors();
+        }
+
+        function debouncedFilter() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(loadTailors, 400);
+        }
+
+        async function loadFilterOptions() {
+            try {
+                const result = await fetchAPI('filter_options.php');
+                const { cities, price_ranges } = result.data;
+
+                const citySelect = document.getElementById('cityFilter');
+                cities.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c; opt.textContent = c;
+                    citySelect.appendChild(opt);
+                });
+
+                const priceSelect = document.getElementById('priceFilter');
+                price_ranges.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.value; opt.textContent = p.label;
+                    priceSelect.appendChild(opt);
+                });
+            } catch (err) {
+                // Filter dropdowns simply stay at their default options if this fails.
+            }
+        }
+
+        const CATEGORY_ICONS = { Men: 'fa-person', Women: 'fa-person-dress', Kids: 'fa-child' };
+
+        function starRow(rating) {
+            const full = Math.round(rating);
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                html += `<i class="fa-${i <= full ? 'solid' : 'regular'} fa-star" style="color:#F5A623;font-size:0.8rem;"></i>`;
+            }
+            return html + ` <span style="font-size:0.8rem;color:var(--gray);">${parseFloat(rating).toFixed(1)}</span>`;
+        }
+
+        function buildTailorQuery() {
+            const params = new URLSearchParams();
+            if (activeCategory) params.set('category', activeCategory);
+            const city = document.getElementById('cityFilter').value;
+            if (city) params.set('city', city);
+            const search = document.getElementById('searchInput').value.trim();
+            if (search) params.set('search', search);
+            const minRating = document.getElementById('ratingFilter').value;
+            if (minRating && minRating !== '0') params.set('min_rating', minRating);
+            const priceRange = document.getElementById('priceFilter').value;
+            if (priceRange) params.set('price_range', priceRange);
+            const sort = document.getElementById('sortFilter').value;
+            if (sort) params.set('sort', sort);
+            return params.toString();
+        }
+
+        async function loadTailors() {
+            try {
+                const qs = buildTailorQuery();
+                const endpoint = qs ? `tailors.php?${qs}` : 'tailors.php';
+                const result = await fetchAPI(endpoint);
+                const container = document.getElementById('tailorsList');
+                const tailors = result.data || [];
+
+                if (tailors.length === 0) {
+                    container.innerHTML = '<div class="text-center p-3" style="grid-column:1/-1;"><i class="fa-solid fa-store-slash" style="font-size:3rem;color:var(--gray-light);margin-bottom:1rem;display:block;"></i><h4>No tailors found</h4><p class="text-muted">Try adjusting your filters, or check back soon!</p></div>';
+                    return;
+                }
+
+                container.innerHTML = tailors.map(t => `
+                    <div class="tailor-card">
+                        <div class="icon-box">
+                            <i class="fa-solid fa-store"></i>
+                        </div>
+                        <h4>${t.shop_name}</h4>
+                        <p class="meta"><i class="fa-solid fa-user-tie"></i> ${t.owner_name}</p>
+                        <p class="meta"><i class="fa-solid fa-location-dot"></i> ${t.city ? t.city + ' \u2014 ' : ''}${t.address || 'N/A'}</p>
+                        <p class="meta">${starRow(t.rating)}</p>
+                        <p class="meta" style="font-weight:600;color:var(--primary);">Starting from \u20b9${parseFloat(t.starting_price).toFixed(0)}</p>
+                        <div style="margin:0.5rem 0;">
+                            ${(t.category || '').split(',').filter(Boolean).map(c => `<span class="services-badge" style="background:var(--accent-light,#eef2ff);"><i class="fa-solid ${CATEGORY_ICONS[c.trim()] || 'fa-tag'}"></i> ${c.trim()}</span>`).join('')}
+                        </div>
+                        <div style="margin:0.5rem 0 0.8rem;">
+                            ${(t.services || '').split(',').map(s => `<span class="services-badge">${s.trim()}</span>`).join('')}
+                        </div>
+                        <a href="booking.html?tailor_id=${t.id}&shop_name=${encodeURIComponent(t.shop_name)}" class="btn-primary-custom btn-sm-custom w-100" style="justify-content:center; margin-top:auto;">
+                            <i class="fa-solid fa-calendar-plus"></i> Book Now
+                        </a>
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('tailorsList').innerHTML = '<p class="text-muted text-center" style="grid-column:1/-1;">Failed to load tailors.</p>';
+            }
+        }
+
+        async function loadBookings() {
+            try {
+                const result = await fetchAPI('booking.php');
+                const bookings = result.data || [];
+                const tbody = document.getElementById('bookingsTable');
+
+                // Stats
+                document.getElementById('totalOrders').textContent = bookings.length;
+                document.getElementById('activeOrders').textContent = bookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled').length;
+                document.getElementById('completedOrders').textContent = bookings.filter(b => b.status === 'completed').length;
+
+                if (bookings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-3 text-muted">No bookings yet. Browse tailors and book your first service!</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = bookings.map((b, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${b.shop_name}</strong></td>
+                        <td>${b.service_type}</td>
+                        <td>${formatDate(b.booking_date)}<br><small class="text-muted">${b.booking_time}</small></td>
+                        <td><small>${b.service_mode}</small></td>
+                        <td>${getStatusBadge(b.status)}</td>
+                        <td>
+                            <a href="order_summary.html?id=${b.id}" class="btn-primary-custom btn-sm-custom" style="padding:0.3rem 0.8rem;font-size:0.8rem;">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                document.getElementById('bookingsTable').innerHTML = '<tr><td colspan="7" class="text-center text-muted p-3">Failed to load bookings.</td></tr>';
+            }
+        }
+    </script>
+</body>
+
+</html>

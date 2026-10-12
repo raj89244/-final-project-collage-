@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — Smart Tailor</title>
+    <meta name="description" content="Admin dashboard to manage customers, tailors, bookings, and payments.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Reject Modal */
+        #rejectModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #rejectModal.open { display: flex; }
+        .reject-modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp .25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to   { transform: translateY(0);   opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="page-header" style="background:linear-gradient(135deg,#1E293B,#334155);">
+        <div class="container">
+            <h1><i class="fa-solid fa-shield-halved" style="margin-right:10px;"></i> Admin Panel</h1>
+            <p>Manage the entire Smart Tailor system</p>
+        </div>
+    </div>
+
+    <div class="container dashboard-container" style="padding-top:2rem;">
+        <div id="alert-container"></div>
+
+        <!-- Stats -->
+        <div class="grid-4 mb-4">
+            <div class="stat-card">
+                <div class="stat-icon primary"><i class="fa-solid fa-users"></i></div>
+                <div><h3 id="customerCount">0</h3><p>Customers</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon warning"><i class="fa-solid fa-scissors"></i></div>
+                <div><h3 id="tailorCount">0</h3><p>Tailors</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#FEE2E2;color:#DC2626;"><i class="fa-solid fa-user-clock"></i></div>
+                <div><h3 id="pendingCount">0</h3><p>Pending Approval</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#E0E7FF;color:#4338CA;"><i class="fa-solid fa-calendar-check"></i></div>
+                <div><h3 id="bookingCount">0</h3><p>Bookings</p></div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="dash-tabs">
+            <div class="dash-tab" data-tab="pending" onclick="switchTab('pending')" id="pendingTab">
+                <i class="fa-solid fa-user-clock" style="margin-right:5px;"></i> Pending Approval
+                <span id="pendingBadge" style="background:#DC2626;color:#fff;font-size:0.7rem;padding:2px 8px;border-radius:10px;margin-left:6px;display:none;">0</span>
+            </div>
+            <div class="dash-tab active" data-tab="customers" onclick="switchTab('customers')">
+                <i class="fa-solid fa-users" style="margin-right:5px;"></i> Customers
+            </div>
+            <div class="dash-tab" data-tab="tailors" onclick="switchTab('tailors')">
+                <i class="fa-solid fa-scissors" style="margin-right:5px;"></i> Tailors
+            </div>
+            <div class="dash-tab" data-tab="rejected" onclick="switchTab('rejected')">
+                <i class="fa-solid fa-ban" style="margin-right:5px;color:#DC2626;"></i> Rejected
+                <span id="rejectedBadge" style="background:#6B7280;color:#fff;font-size:0.7rem;padding:2px 8px;border-radius:10px;margin-left:6px;display:none;">0</span>
+            </div>
+            <div class="dash-tab" data-tab="bookings" onclick="switchTab('bookings')">
+                <i class="fa-solid fa-calendar-check" style="margin-right:5px;"></i> Bookings
+            </div>
+            <div class="dash-tab" data-tab="payments" onclick="switchTab('payments')">
+                <i class="fa-solid fa-credit-card" style="margin-right:5px;"></i> Payments
+            </div>
+        </div>
+
+        <!-- Pending Approvals Tab -->
+        <div class="card-custom tab-content hidden" id="tab-pending">
+            <div class="p-3" style="border-bottom:1px solid var(--gray-lighter);">
+                <h3><i class="fa-solid fa-user-clock" style="color:#DC2626;margin-right:10px;"></i>Tailor Requests Awaiting Approval</h3>
+                <p class="text-muted" style="font-size:0.85rem;margin-top:5px;">Review tailor profiles below and approve or reject their registration.</p>
+            </div>
+            <div id="pendingList" style="padding:1.5rem;">
+                <div class="text-center p-3"><div class="spinner"></div></div>
+            </div>
+        </div>
+
+        <!-- Customers Tab -->
+        <div class="card-custom tab-content" id="tab-customers">
+            <div style="overflow-x:auto;">
+                <table class="table-custom">
+                    <thead>
+                        <tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Address</th><th>Joined</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="customersTable">
+                        <tr><td colspan="7" class="text-center p-3"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tailors Tab -->
+        <div class="card-custom tab-content hidden" id="tab-tailors">
+            <div style="overflow-x:auto;">
+                <table class="table-custom">
+                    <thead>
+                        <tr><th>#</th><th>Shop Name</th><th>Owner</th><th>Email</th><th>Phone</th><th>City</th><th>Services</th><th>Rating</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="tailorsTable">
+                        <tr><td colspan="10" class="text-center p-3"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Rejected Tailors Tab -->
+        <div class="card-custom tab-content hidden" id="tab-rejected">
+            <div class="p-3" style="border-bottom:1px solid var(--gray-lighter);">
+                <h3><i class="fa-solid fa-ban" style="color:#DC2626;margin-right:10px;"></i>Rejected Tailor Registrations</h3>
+                <p class="text-muted" style="font-size:0.85rem;margin-top:5px;">These tailors were rejected. They can see the reason when they try to log in. You can permanently delete them here.</p>
+            </div>
+            <div id="rejectedList" style="padding:1.5rem;">
+                <div class="text-center p-3"><div class="spinner"></div></div>
+            </div>
+        </div>
+
+        <!-- Bookings Tab -->
+        <div class="card-custom tab-content hidden" id="tab-bookings">
+            <div style="overflow-x:auto;">
+                <table class="table-custom">
+                    <thead>
+                        <tr><th>#</th><th>Customer</th><th>Tailor</th><th>Service</th><th>Date</th><th>Mode</th><th>Price</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="bookingsTableAdmin">
+                        <tr><td colspan="8" class="text-center p-3"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div class="card-custom tab-content hidden" id="tab-payments">
+            <div style="overflow-x:auto;">
+                <table class="table-custom">
+                    <thead>
+                        <tr><th>#</th><th>Booking ID</th><th>Customer</th><th>Amount</th><th>Method</th><th>Status</th><th>Transaction ID</th><th>Date</th></tr>
+                    </thead>
+                    <tbody id="paymentsTable">
+                        <tr><td colspan="8" class="text-center p-3"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ REJECT REASON MODAL ═══════════════ -->
+    <div id="rejectModal">
+        <div class="reject-modal-box" onclick="event.stopPropagation()">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;">
+                <div style="width:48px;height:48px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fa-solid fa-ban" style="color:#DC2626;font-size:1.3rem;"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:1.1rem;">Reject Tailor Registration</h3>
+                    <p style="margin:0;color:#6B7280;font-size:0.85rem;">Shop: <strong id="rejectShopName"></strong></p>
+                </div>
+            </div>
+
+            <label style="font-weight:600;font-size:0.9rem;display:block;margin-bottom:0.5rem;">
+                <i class="fa-solid fa-comment-dots" style="color:#DC2626;margin-right:5px;"></i>Reason for Rejection *
+            </label>
+            <textarea id="rejectReason" rows="3"
+                placeholder="e.g. Invalid documents, incomplete information, duplicate registration..."
+                style="width:100%;padding:0.75rem;border-radius:8px;border:1.5px solid #ddd;font-family:inherit;font-size:0.9rem;resize:vertical;transition:border .2s;"
+                oninput="this.style.border='1.5px solid #ddd'"></textarea>
+            <p style="color:#6B7280;font-size:0.8rem;margin-top:0.4rem;">
+                <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>
+                This reason will be shown to the tailor when they try to log in next time.
+            </p>
+
+            <div style="display:flex;gap:0.8rem;margin-top:1.2rem;">
+                <button onclick="closeRejectModal()" style="flex:1;padding:0.75rem;border:1.5px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-weight:600;font-size:0.9rem;">
+                    Cancel
+                </button>
+                <button id="rejectConfirmBtn" onclick="confirmReject()"
+                    style="flex:2;padding:0.75rem;border:none;border-radius:8px;background:#DC2626;color:#fff;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                    <i class="fa-solid fa-ban"></i> Reject &amp; Notify Tailor
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        let _pendingRejectId = null;
+
+        function escapeAttr(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/'/g, '&#39;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await initPage('home', true, ['admin']);
+            if (!user) return;
+            loadAdminData();
+            // Close modal when clicking backdrop
+            document.getElementById('rejectModal').addEventListener('click', closeRejectModal);
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+        }
+
+        async function loadAdminData() {
+            try {
+                const result = await fetchAPI('admin.php');
+                const data = result.data;
+
+                // Stats
+                document.getElementById('customerCount').textContent = data.customers.length;
+                document.getElementById('tailorCount').textContent = data.tailors.length;
+                document.getElementById('pendingCount').textContent = data.pending_tailors.length;
+                document.getElementById('bookingCount').textContent = data.bookings.length;
+
+                // Pending badge
+                if (data.pending_tailors.length > 0) {
+                    document.getElementById('pendingBadge').textContent = data.pending_tailors.length;
+                    document.getElementById('pendingBadge').style.display = 'inline';
+                    switchTab('pending');
+                } else {
+                    document.getElementById('pendingBadge').style.display = 'none';
+                }
+
+                // Rejected badge
+                const rejectedData = data.rejected_tailors || [];
+                if (rejectedData.length > 0) {
+                    document.getElementById('rejectedBadge').textContent = rejectedData.length;
+                    document.getElementById('rejectedBadge').style.display = 'inline';
+                }
+
+                // ── Pending Tailors Cards ──
+                const pendingList = document.getElementById('pendingList');
+                if (data.pending_tailors.length === 0) {
+                    pendingList.innerHTML = `
+                        <div class="text-center p-3" style="padding:3rem!important;">
+                            <i class="fa-solid fa-circle-check" style="font-size:3rem;color:var(--success);margin-bottom:1rem;display:block;"></i>
+                            <h4>All Clear!</h4>
+                            <p class="text-muted">No pending tailor approvals right now.</p>
+                        </div>`;
+                } else {
+                    pendingList.innerHTML = data.pending_tailors.map(t => `
+                        <div class="card-custom" style="padding:1.5rem;margin-bottom:1rem;border-left:4px solid var(--accent);">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+                                <div style="flex:1;min-width:250px;">
+                                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+                                        <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;">
+                                            <i class="fa-solid fa-store" style="color:#fff;font-size:1.2rem;"></i>
+                                        </div>
+                                        <div>
+                                            <h4 style="margin:0;">${t.shop_name}</h4>
+                                            <span class="badge-custom badge-pending">Pending Verification</span>
+                                        </div>
+                                    </div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;font-size:0.9rem;">
+                                        <div><i class="fa-solid fa-user-tie" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Owner:</strong> ${t.owner_name}</div>
+                                        <div><i class="fa-solid fa-envelope" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Email:</strong> ${t.email}</div>
+                                        <div><i class="fa-solid fa-phone" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Phone:</strong> ${t.phone}</div>
+                                        <div><i class="fa-solid fa-city" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>City:</strong> ${t.city || 'N/A'}</div>
+                                        <div><i class="fa-solid fa-location-dot" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Address:</strong> ${t.address || t.user_address || 'N/A'}</div>
+                                        <div><i class="fa-solid fa-indian-rupee-sign" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Starting Price:</strong> &#8377;${parseFloat(t.starting_price || 0).toFixed(0)}</div>
+                                        <div style="grid-column:1/-1;"><i class="fa-solid fa-list-check" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Services:</strong> ${(t.services || '').split(',').map(s => '<span class="services-badge">' + s.trim() + '</span>').join(' ')}</div>
+                                        <div><i class="fa-solid fa-calendar" style="color:var(--primary);margin-right:6px;width:16px;"></i><strong>Applied:</strong> ${formatDate(t.user_created || t.created_at)}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:0.5rem;min-width:140px;">
+                                    <button class="btn-success-custom" onclick="approveTailor(${t.id})" style="padding:0.6rem 1.2rem;font-size:0.85rem;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;">
+                                        <i class="fa-solid fa-check-circle"></i> Approve
+                                    </button>
+                                    <button class="btn-danger-custom" data-shop="${escapeAttr(t.shop_name)}" onclick="openRejectModal(${t.id}, this.getAttribute('data-shop'))" style="padding:0.6rem 1.2rem;font-size:0.85rem;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;">
+                                        <i class="fa-solid fa-times-circle"></i> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // ── Customers Table ──
+                const ct = document.getElementById('customersTable');
+                if (data.customers.length === 0) {
+                    ct.innerHTML = '<tr><td colspan="7" class="text-center p-3 text-muted">No customers registered yet.</td></tr>';
+                } else {
+                    ct.innerHTML = data.customers.map((c, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><strong>${c.full_name}</strong></td>
+                            <td>${c.email}</td>
+                            <td>${c.phone}</td>
+                            <td>${c.address || 'N/A'}</td>
+                            <td><small>${formatDate(c.created_at)}</small></td>
+                            <td><button class="btn-danger-custom btn-sm-custom" onclick="deleteUser(${c.id})" style="padding:0.3rem 0.6rem;font-size:0.75rem;border-radius:6px;"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                    `).join('');
+                }
+
+                // ── Tailors Table (only approved/active) ──
+                const tt = document.getElementById('tailorsTable');
+                if (data.tailors.length === 0) {
+                    tt.innerHTML = '<tr><td colspan="10" class="text-center p-3 text-muted">No approved tailors yet.</td></tr>';
+                } else {
+                    tt.innerHTML = data.tailors.map((t, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td><strong>${t.shop_name}</strong></td>
+                            <td>${t.owner_name}</td>
+                            <td>${t.email}</td>
+                            <td>${t.phone}</td>
+                            <td>${t.city || 'N/A'}</td>
+                            <td><small>${t.services || 'N/A'}</small></td>
+                            <td style="white-space:nowrap;">
+                                <input type="number" min="0" max="5" step="0.1" value="${parseFloat(t.rating).toFixed(1)}"
+                                    id="rating-${t.id}" style="width:60px;padding:0.3rem;border-radius:6px;border:1px solid var(--gray-lighter);">
+                                <button class="btn-secondary-custom btn-sm-custom" onclick="updateRating(${t.id})" style="padding:0.3rem 0.5rem;font-size:0.75rem;" title="Save rating"><i class="fa-solid fa-check"></i></button>
+                            </td>
+                            <td><span class="badge-custom badge-completed">Verified</span></td>
+                            <td><button class="btn-danger-custom btn-sm-custom" onclick="deleteUser(${t.user_id})" style="padding:0.3rem 0.6rem;font-size:0.75rem;border-radius:6px;"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                    `).join('');
+                }
+
+                // ── Rejected Tailors List ──
+                const rejectedList = document.getElementById('rejectedList');
+                if (rejectedData.length === 0) {
+                    rejectedList.innerHTML = '<div class="text-center p-3 text-muted" style="padding:2rem!important;"><i class="fa-solid fa-circle-check" style="font-size:2.5rem;color:var(--success);display:block;margin-bottom:0.8rem;"></i>No rejected tailors.</div>';
+                } else {
+                    rejectedList.innerHTML = rejectedData.map(t => `
+                        <div class="card-custom" style="padding:1.2rem 1.5rem;margin-bottom:0.8rem;border-left:4px solid #DC2626;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                        <div style="width:40px;height:40px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <i class="fa-solid fa-store" style="color:#DC2626;"></i>
+                                        </div>
+                                        <div>
+                                            <h4 style="margin:0;">${t.shop_name} <span style="font-size:0.72rem;background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:8px;vertical-align:middle;margin-left:4px;">Rejected</span></h4>
+                                            <div style="font-size:0.85rem;color:#555;">
+                                                <span style="margin-right:1rem;"><i class="fa-solid fa-user-tie" style="color:#DC2626;margin-right:4px;"></i>${t.owner_name}</span>
+                                                <span><i class="fa-solid fa-phone" style="color:#DC2626;margin-right:4px;"></i>${t.phone}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="background:#FEF2F2;border-radius:8px;padding:8px 12px;font-size:0.85rem;color:#991B1B;border-left:3px solid #DC2626;">
+                                        <i class="fa-solid fa-circle-exclamation" style="margin-right:5px;"></i>
+                                        <strong>Rejection Reason:</strong> ${t.rejection_reason || 'No reason saved'}
+                                    </div>
+                                </div>
+                                <button data-shop="${escapeAttr(t.shop_name)}" onclick="permanentlyDeleteTailor(${t.id}, this.getAttribute('data-shop'))"
+                                    style="padding:0.55rem 1rem;border:none;border-radius:8px;background:#DC2626;color:#fff;cursor:pointer;font-weight:700;font-size:0.85rem;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+                                    <i class="fa-solid fa-trash"></i> Delete Permanently
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // ── Bookings Table ──
+                const bt = document.getElementById('bookingsTableAdmin');
+                if (data.bookings.length === 0) {
+                    bt.innerHTML = '<tr><td colspan="8" class="text-center p-3 text-muted">No bookings yet.</td></tr>';
+                } else {
+                    bt.innerHTML = data.bookings.map((b, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td>${b.customer_name}</td>
+                            <td>${b.shop_name}</td>
+                            <td>${b.service_type}</td>
+                            <td>${formatDate(b.booking_date)}</td>
+                            <td><small>${b.service_mode}</small></td>
+                            <td><strong>${formatPrice(b.price)}</strong></td>
+                            <td>${getStatusBadge(b.status)}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                // ── Payments Table ──
+                const pt = document.getElementById('paymentsTable');
+                if (data.payments.length === 0) {
+                    pt.innerHTML = '<tr><td colspan="8" class="text-center p-3 text-muted">No payments yet.</td></tr>';
+                } else {
+                    pt.innerHTML = data.payments.map((p, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td>#${p.booking_id}</td>
+                            <td>${p.customer_name}</td>
+                            <td><strong>${formatPrice(p.amount)}</strong></td>
+                            <td>${p.payment_method}</td>
+                            <td>${p.payment_status === 'completed' ? '<span class="badge-custom badge-completed">Completed</span>' : '<span class="badge-custom badge-pending">Pending</span>'}</td>
+                            <td><small>${p.transaction_id || 'N/A'}</small></td>
+                            <td><small>${formatDate(p.paid_at)}</small></td>
+                        </tr>
+                    `).join('');
+                }
+
+            } catch (err) {
+                showAlert('Failed to load admin data: ' + err.message, 'error');
+            }
+        }
+
+        // ═══ APPROVE ═══
+        async function approveTailor(tailorId) {
+            if (!confirm('Approve this tailor? They will be listed on the website for customers.')) return;
+            try {
+                await fetchAPI('admin.php', 'POST', { action: 'approve_tailor', tailor_id: tailorId });
+                showAlert('Tailor approved and now listed on the website!', 'success');
+                loadAdminData();
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+
+        // ═══ REJECT MODAL ═══
+        function openRejectModal(tailorId, shopName) {
+            _pendingRejectId = tailorId;
+            document.getElementById('rejectShopName').textContent = shopName;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectReason').style.border = '1.5px solid #ddd';
+            document.getElementById('rejectModal').classList.add('open');
+            setTimeout(() => document.getElementById('rejectReason').focus(), 150);
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.remove('open');
+            _pendingRejectId = null;
+        }
+
+        async function confirmReject() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                document.getElementById('rejectReason').style.border = '1.5px solid #DC2626';
+                document.getElementById('rejectReason').focus();
+                return;
+            }
+            const btn = document.getElementById('rejectConfirmBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0 auto;"></div>';
+            try {
+                await fetchAPI('admin.php', 'POST', { action: 'reject_tailor', tailor_id: _pendingRejectId, reason: reason });
+                document.getElementById('rejectModal').classList.remove('open');
+                showAlert('Tailor rejected. They will see the reason on their next login attempt.', 'success');
+                loadAdminData();
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-ban"></i> Reject &amp; Notify Tailor';
+            }
+        }
+
+        // ═══ PERMANENT DELETE (rejected tailors) ═══
+        async function permanentlyDeleteTailor(tailorId, shopName) {
+            if (!confirm(`Permanently delete "${shopName}"? This CANNOT be undone.`)) return;
+            try {
+                await fetchAPI('admin.php', 'POST', { action: 'delete_rejected_tailor', tailor_id: tailorId });
+                showAlert('Tailor account permanently deleted.', 'success');
+                loadAdminData();
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+
+        // ═══ UPDATE RATING ═══
+        async function updateRating(tailorId) {
+            const input = document.getElementById('rating-' + tailorId);
+            const rating = parseFloat(input.value);
+            if (isNaN(rating) || rating < 0 || rating > 5) {
+                showAlert('Rating must be between 0 and 5.', 'error');
+                return;
+            }
+            try {
+                await fetchAPI('admin.php', 'POST', { action: 'update_rating', tailor_id: tailorId, rating: rating });
+                showAlert('Rating updated.', 'success');
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+
+        // ═══ DELETE USER ═══
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+            try {
+                await fetchAPI('admin.php', 'POST', { action: 'delete_user', user_id: userId });
+                showAlert('User deleted successfully.', 'success');
+                loadAdminData();
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

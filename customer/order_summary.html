@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Summary — Smart Tailor</title>
+    <meta name="description" content="View your booking details and download your bill.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* ── Review Modal ── */
+        #reviewModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #reviewModal.open { display: flex; }
+        .review-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 24px 70px rgba(0,0,0,0.25);
+            animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+            text-align: center;
+        }
+        @keyframes popIn {
+            from { transform: scale(.8); opacity: 0; }
+            to   { transform: scale(1);  opacity: 1; }
+        }
+        .star-row { display:flex; justify-content:center; gap:8px; margin:1rem 0; }
+        .star-btn {
+            font-size: 2.2rem;
+            cursor: pointer;
+            color: #d1d5db;
+            transition: color .15s, transform .15s;
+            background: none; border: none; padding: 0; line-height: 1;
+        }
+        .star-btn:hover, .star-btn.lit { color: #f59e0b; transform: scale(1.2); }
+        #reviewComment {
+            width: 100%; padding: 0.75rem;
+            border-radius: 10px; border: 1.5px solid #e5e7eb;
+            font-family: inherit; font-size: 0.9rem; resize: vertical; margin-top: 0.5rem;
+        }
+        #reviewComment:focus { outline: none; border-color: var(--primary, #4F46E5); }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="page-header">
+        <div class="container">
+            <h1><i class="fa-solid fa-file-invoice" style="margin-right:10px;"></i> Order Summary</h1>
+            <p>Review your booking details</p>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top:2rem; max-width:650px;">
+        <div id="alert-container"></div>
+
+        <div class="order-summary-card" id="orderCard" style="display:none;">
+            <div class="order-summary-header">
+                <i class="fa-solid fa-receipt" style="font-size:2.5rem;margin-bottom:0.5rem;display:block;"></i>
+                <h2 style="color:#fff;margin-bottom:0.3rem;">Booking Confirmed</h2>
+                <p style="opacity:0.85;">Booking ID: #<span id="bookingId"></span></p>
+            </div>
+            <div class="order-summary-body">
+                <div class="order-detail-row"><span class="label">Tailor Name</span><span id="tailorName">—</span></div>
+                <div class="order-detail-row"><span class="label">Owner</span><span id="ownerName">—</span></div>
+                <div class="order-detail-row"><span class="label">Service Type</span><span id="serviceType">—</span></div>
+                <div class="order-detail-row"><span class="label">Booking Date</span><span id="bookingDate">—</span></div>
+                <div class="order-detail-row"><span class="label">Booking Time</span><span id="bookingTime">—</span></div>
+                <div class="order-detail-row"><span class="label">Delivery Date</span><span id="deliveryDate">To be confirmed</span></div>
+                <div class="order-detail-row"><span class="label">Service Mode</span><span id="serviceMode">—</span></div>
+                <div class="order-detail-row"><span class="label">Status</span><span id="statusBadge">—</span></div>
+                <div class="order-detail-row"><span class="label">Measurements</span><span id="measurementBadge">—</span></div>
+                <div class="order-detail-row"><span class="label">Total Price</span><span id="totalPrice">—</span></div>
+                <div class="order-detail-row" id="amountDueRow" style="display:none;">
+                    <span class="label">Amount Due Now</span><span id="amountDue">—</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="padding:0 2rem 2rem; display:flex; gap:1rem; flex-wrap:wrap;">
+                <button id="downloadBillBtn" class="btn-primary-custom" onclick="downloadBillPDF()"
+                    style="flex:1;justify-content:center;display:none;">
+                    <i class="fa-solid fa-file-pdf"></i> Download Bill (PDF)
+                </button>
+                <button id="writeReviewBtn" onclick="openReviewModal()"
+                    style="flex:1;padding:0.75rem 1rem;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;cursor:pointer;font-size:0.95rem;display:none;align-items:center;justify-content:center;gap:8px;">
+                    <i class="fa-solid fa-star"></i> Rate This Tailor
+                </button>
+                <a href="payment.html?id=" id="paymentLink" class="btn-success-custom"
+                    style="flex:1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i class="fa-solid fa-credit-card"></i> Proceed to Payment
+                </a>
+            </div>
+        </div>
+
+        <div id="loadingIndicator" class="text-center p-3"><div class="spinner"></div></div>
+
+        <div style="text-align:center;margin-top:1.5rem;">
+            <a href="dashboard.html" class="btn-secondary-custom btn-sm-custom">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- ═══════════ REVIEW POPUP ═══════════ -->
+    <div id="reviewModal">
+        <div class="review-box" onclick="event.stopPropagation()">
+            <div style="width:64px;height:64px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <i class="fa-solid fa-trophy" style="color:#fff;font-size:1.8rem;"></i>
+            </div>
+            <h3 style="margin:0 0 0.3rem;font-size:1.2rem;">Order Completed! &#127881;</h3>
+            <p style="color:#6B7280;font-size:0.9rem;margin-bottom:0.5rem;">
+                How was your experience with <strong id="reviewTailorName"></strong>?
+            </p>
+            <div class="star-row" id="starRow">
+                <button class="star-btn" data-val="1" onclick="selectStar(1)">&#9733;</button>
+                <button class="star-btn" data-val="2" onclick="selectStar(2)">&#9733;</button>
+                <button class="star-btn" data-val="3" onclick="selectStar(3)">&#9733;</button>
+                <button class="star-btn" data-val="4" onclick="selectStar(4)">&#9733;</button>
+                <button class="star-btn" data-val="5" onclick="selectStar(5)">&#9733;</button>
+            </div>
+            <p id="starLabel" style="color:#f59e0b;font-weight:700;font-size:0.95rem;min-height:1.4em;"></p>
+            <textarea id="reviewComment" rows="3" placeholder="Write a few words about your experience (optional)..."></textarea>
+            <div style="display:flex;gap:0.7rem;margin-top:1rem;">
+                <button onclick="skipReview()"
+                    style="flex:1;padding:0.7rem;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;color:#6B7280;font-weight:600;">
+                    Skip
+                </button>
+                <button id="submitReviewBtn" onclick="submitReview()"
+                    style="flex:2;padding:0.7rem;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;cursor:pointer;font-size:0.95rem;">
+                    <i class="fa-solid fa-paper-plane"></i> Submit Review
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        let orderData = {};
+        let selectedRating = 0;
+        const STAR_LABELS = ['','Poor &#128542;','Fair &#128528;','Good &#128578;','Very Good &#128522;','Excellent! &#129321;'];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await initPage('home', true, ['customer']);
+            if (!user) return;
+
+            const bookingId = new URLSearchParams(window.location.search).get('id');
+            if (!bookingId) {
+                showAlert('No booking ID provided.', 'error');
+                document.getElementById('loadingIndicator').style.display = 'none';
+                return;
+            }
+
+            try {
+                const result = await fetchAPI('payment.php?booking_id=' + bookingId);
+                orderData = result.data;
+
+                document.getElementById('bookingId').textContent = orderData.id;
+                document.getElementById('tailorName').textContent = orderData.shop_name;
+                document.getElementById('ownerName').textContent = orderData.owner_name;
+                document.getElementById('serviceType').textContent = orderData.service_type;
+                document.getElementById('bookingDate').textContent = formatDate(orderData.booking_date);
+                document.getElementById('bookingTime').textContent = orderData.booking_time;
+                document.getElementById('deliveryDate').textContent = orderData.delivery_date ? formatDate(orderData.delivery_date) : 'To be confirmed by tailor';
+                document.getElementById('serviceMode').textContent = orderData.service_mode;
+                document.getElementById('statusBadge').innerHTML = getStatusBadge(orderData.status);
+                document.getElementById('totalPrice').textContent = formatPrice(orderData.price);
+                document.getElementById('measurementBadge').innerHTML = orderData.measurement_status === 'done'
+                    ? '<span class="badge-custom badge-completed">Taken</span>'
+                    : '<span class="badge-custom badge-pending">Pending</span>';
+
+                const paymentLink = document.getElementById('paymentLink');
+                paymentLink.href = 'payment.html?id=' + orderData.id;
+
+                if (orderData.payment_stage === 'paid') {
+                    paymentLink.innerHTML = '<i class="fa-solid fa-check-circle"></i> Payment Done';
+                    paymentLink.style.background = 'var(--gray-lighter)';
+                    paymentLink.style.color = 'var(--gray)';
+                    paymentLink.style.pointerEvents = 'none';
+                    document.getElementById('downloadBillBtn').style.display = 'flex';
+                    // Check if review submitted; show popup if not
+                    checkAndShowReview(orderData.id);
+                } else if (orderData.payment_stage === 'awaiting_measurement') {
+                    paymentLink.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> Waiting for Measurement';
+                    paymentLink.style.background = 'var(--gray-lighter)';
+                    paymentLink.style.color = 'var(--gray)';
+                    paymentLink.style.pointerEvents = 'none';
+                } else {
+                    document.getElementById('amountDueRow').style.display = 'flex';
+                    document.getElementById('amountDue').textContent = formatPrice(orderData.amount_due);
+                    const labelMap = { advance: 'Pay &#8377;100 Advance', final: 'Pay Final Amount', full: 'Proceed to Payment' };
+                    paymentLink.innerHTML = '<i class="fa-solid fa-credit-card"></i> ' + (labelMap[orderData.payment_type_due] || 'Proceed to Payment');
+                }
+
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('orderCard').style.display = 'block';
+            } catch (err) {
+                showAlert(err.message, 'error');
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
+        });
+
+        async function checkAndShowReview(bookingId) {
+            try {
+                const res = await fetchAPI('review.php?booking_id=' + bookingId);
+                const btn = document.getElementById('writeReviewBtn');
+                btn.style.display = 'flex';
+                if (!res.data) {
+                    // No review yet — auto-open popup after short delay
+                    setTimeout(() => openReviewModal(), 800);
+                } else {
+                    // Already reviewed
+                    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Reviewed &#10003;';
+                    btn.style.background = '#d1fae5';
+                    btn.style.color = '#065f46';
+                    btn.onclick = null;
+                    btn.style.cursor = 'default';
+                }
+            } catch (_) {}
+        }
+
+        function selectStar(val) {
+            selectedRating = val;
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                btn.classList.toggle('lit', parseInt(btn.dataset.val) <= val);
+            });
+            document.getElementById('starLabel').innerHTML = STAR_LABELS[val];
+            document.getElementById('starLabel').style.color = '#f59e0b';
+        }
+
+        function openReviewModal() {
+            document.getElementById('reviewTailorName').textContent = orderData.shop_name || 'the tailor';
+            selectedRating = 0;
+            document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('lit'));
+            document.getElementById('starLabel').textContent = '';
+            document.getElementById('reviewComment').value = '';
+            document.getElementById('reviewModal').classList.add('open');
+        }
+
+        function skipReview() {
+            document.getElementById('reviewModal').classList.remove('open');
+        }
+
+        async function submitReview() {
+            if (selectedRating === 0) {
+                document.getElementById('starLabel').innerHTML = '&#9888; Please select a star rating!';
+                document.getElementById('starLabel').style.color = '#DC2626';
+                return;
+            }
+            const btn = document.getElementById('submitReviewBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0 auto;"></div>';
+            try {
+                await fetchAPI('review.php', 'POST', {
+                    booking_id: orderData.id,
+                    rating: selectedRating,
+                    comment: document.getElementById('reviewComment').value.trim()
+                });
+                document.getElementById('reviewModal').classList.remove('open');
+                showAlert('Thank you for your review! Your feedback helps other customers. &#11088;', 'success');
+                const reviewBtn = document.getElementById('writeReviewBtn');
+                reviewBtn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Reviewed &#10003;';
+                reviewBtn.style.background = '#d1fae5';
+                reviewBtn.style.color = '#065f46';
+                reviewBtn.onclick = null;
+                reviewBtn.style.cursor = 'default';
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Review';
+            }
+        }
+
+        function downloadBillPDF() {
+            const payments = (orderData.payments || []).filter(p => p.payment_status === 'completed');
+            const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            const lastPayment = payments.slice(-1)[0] || {};
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageW = 210, leftX = 20, rightX = pageW - 20, colRight = 120;
+            let y = 0;
+
+            doc.setFillColor(79, 70, 229); doc.rect(0, 0, pageW, 50, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(26); doc.setFont(undefined, 'bold');
+            doc.text('Smart Tailor', leftX, 22);
+            doc.setFontSize(11); doc.setFont(undefined, 'normal');
+            doc.text('PAYMENT INVOICE', leftX, 34);
+            doc.text('Invoice #INV-' + String(orderData.id).padStart(4, '0'), rightX, 22, { align: 'right' });
+            doc.text('Date: ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }), rightX, 34, { align: 'right' });
+            doc.text('Booking #' + orderData.id, rightX, 44, { align: 'right' });
+            y = 62;
+
+            doc.setFillColor(245, 245, 255); doc.rect(leftX, y - 6, pageW - 40, 42, 'F');
+            doc.setDrawColor(79, 70, 229); doc.setLineWidth(0.5);
+            doc.line(leftX, y - 6, leftX, y + 36);
+            doc.setTextColor(79, 70, 229); doc.setFontSize(10); doc.setFont(undefined, 'bold');
+            doc.text('TAILOR SHOP DETAILS', leftX + 8, y + 2);
+            doc.setTextColor(30, 41, 59); doc.setFontSize(13); doc.setFont(undefined, 'bold');
+            doc.text(orderData.shop_name || 'N/A', leftX + 8, y + 12);
+            doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(80, 80, 80);
+            doc.text('Owner: ' + (orderData.owner_name || 'N/A'), leftX + 8, y + 20);
+            doc.text('Address: ' + (orderData.shop_address || orderData.address || 'N/A'), leftX + 8, y + 27);
+            doc.text('Phone: ' + (orderData.tailor_phone || 'N/A'), leftX + 8, y + 34);
+            y += 52;
+
+            doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3); doc.line(leftX, y, rightX, y); y += 10;
+            doc.setTextColor(79, 70, 229); doc.setFontSize(10); doc.setFont(undefined, 'bold');
+            doc.text('CUSTOMER DETAILS', leftX, y); doc.text('BOOKING DETAILS', colRight, y); y += 8;
+            doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(30, 41, 59);
+
+            const custDetails = ['Name: '+(orderData.customer_name||'N/A'),'Phone: '+(orderData.customer_phone||'N/A'),'Email: '+(orderData.customer_email||'N/A'),'Address: '+(orderData.customer_address||'N/A')];
+            custDetails.forEach(l => { doc.text(l, leftX, y); y += 7; });
+            let yRight = y - custDetails.length * 7;
+            const bookDetails = ['Booking ID: #'+orderData.id,'Date: '+(orderData.booking_date||'N/A'),'Time: '+(orderData.booking_time||'N/A'),'Delivery: '+(orderData.delivery_date||'To be confirmed')];
+            bookDetails.forEach(l => { doc.text(l, colRight, yRight); yRight += 7; });
+            y = Math.max(y, yRight) + 5;
+
+            doc.setDrawColor(226, 232, 240); doc.line(leftX, y, rightX, y); y += 8;
+            doc.setFillColor(245, 245, 255); doc.rect(leftX, y - 4, pageW - 40, 12, 'F');
+            doc.setTextColor(79, 70, 229); doc.setFontSize(10); doc.setFont(undefined, 'bold');
+            doc.text('SERVICE', leftX + 5, y + 3); doc.text('MODE', 95, y + 3); doc.text('AMOUNT', rightX - 5, y + 3, { align: 'right' });
+            y += 14;
+            doc.setTextColor(30, 41, 59); doc.setFont(undefined, 'normal');
+            doc.text(orderData.service_type || 'N/A', leftX + 5, y); doc.text(orderData.service_mode || 'N/A', 95, y);
+            const priceStr = 'Rs. ' + totalPaid.toFixed(2); doc.setFont(undefined, 'bold');
+            doc.text(priceStr, rightX - 5, y, { align: 'right' }); y += 10;
+            doc.setDrawColor(226, 232, 240); doc.line(leftX, y, rightX, y); y += 8;
+            doc.setFillColor(79, 70, 229); doc.roundedRect(colRight - 10, y - 4, rightX - colRight + 15, 20, 3, 3, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.setFont(undefined, 'bold');
+            doc.text('TOTAL PAID', colRight, y + 8); doc.setFontSize(14); doc.text(priceStr, rightX, y + 8, { align: 'right' });
+            y += 30;
+
+            doc.setTextColor(100, 116, 139); doc.setFontSize(9); doc.setFont(undefined, 'normal');
+            doc.text('Transaction ID: ' + (lastPayment.transaction_id || 'N/A'), leftX, y);
+            doc.text('Payment Method: ' + (lastPayment.payment_method || 'N/A'), leftX, y + 6);
+            doc.text('Status: ' + ((lastPayment.payment_status || 'completed').toUpperCase()), leftX, y + 12);
+            doc.text('Paid On: ' + (lastPayment.paid_at ? new Date(lastPayment.paid_at).toLocaleString('en-IN') : 'N/A'), leftX, y + 18);
+            if (payments.length > 1) doc.text('(' + payments.length + ' payments: advance + final)', leftX, y + 24);
+            y += 35;
+
+            doc.setDrawColor(226, 232, 240); doc.line(leftX, y, rightX, y); y += 8;
+            doc.setTextColor(148, 163, 184); doc.setFontSize(9);
+            doc.text('Thank you for choosing Smart Tailor!', 105, y, { align: 'center' });
+            doc.text('This is a computer-generated invoice and does not require a signature.', 105, y + 6, { align: 'center' });
+            doc.text('support@smarttailor.com | +91 98765 43210', 105, y + 12, { align: 'center' });
+            doc.save('SmartTailor_Invoice_' + orderData.id + '.pdf');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Smart Tailor</title>
+    <meta name="description" content="Login to your Smart Tailor account to book tailoring services.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding-top:80px;">
+        <div class="form-container" style="width:100%; max-width:480px;">
+            <div class="text-center mb-3">
+                <div
+                    style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                    <i class="fa-solid fa-right-to-bracket" style="font-size:1.8rem;color:#fff;"></i>
+                </div>
+                <h2>Welcome Back</h2>
+                <p class="text-muted">Login to your account to continue</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <div class="input-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="email" placeholder="Enter your email" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" placeholder="Enter your password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary-custom w-100" id="loginBtn"
+                    style="justify-content:center; padding:1rem; font-size:1rem;">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Login
+                </button>
+            </form>
+
+            <p class="text-center mt-3" style="font-size:0.9rem;">
+                Don't have an account? <a href="register.html" style="font-weight:700;">Sign up here</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initPage('home');
+
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('loginBtn');
+                btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:3px;margin:0;"></div> Logging in...';
+                btn.disabled = true;
+
+                const data = {
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                };
+
+                try {
+                    const result = await fetchAPI('login.php', 'POST', data);
+                    if (result.success) {
+                        showAlert('Login successful! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = result.data.redirect;
+                        }, 800);
+                    }
+                } catch (err) {
+                    showAlert(err.message, 'error');
+                    btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Login';
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

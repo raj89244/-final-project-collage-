@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Measurements — Smart Tailor</title>
+    <meta name="description" content="Save your body measurements for accurate tailoring.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="page-header">
+        <div class="container">
+            <h1><i class="fa-solid fa-ruler-combined" style="margin-right:10px;"></i> My Measurements</h1>
+            <p>Save your body measurements for accurate stitching</p>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top:2rem; max-width:800px;">
+        <div id="alert-container"></div>
+
+        <div class="card-custom" style="padding:2rem;">
+            <!-- Measurement Guide -->
+            <div
+                style="background:var(--primary-light);border-radius:var(--radius);padding:1.2rem;margin-bottom:2rem;display:flex;align-items:center;gap:12px;">
+                <i class="fa-solid fa-lightbulb" style="font-size:1.5rem;color:var(--accent);"></i>
+                <div>
+                    <strong style="display:block;margin-bottom:2px;">Measurement Guide</strong>
+                    <small class="text-muted">All measurements should be in inches. Use a flexible measuring tape for
+                        accurate results.</small>
+                </div>
+            </div>
+
+            <form id="measurementForm">
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-tape" style="margin-right:5px;color:var(--primary);"></i> Chest
+                            (inches)</label>
+                        <input type="number" id="chest" step="0.1" min="0" placeholder="e.g. 38">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-tape" style="margin-right:5px;color:var(--primary);"></i> Waist
+                            (inches)</label>
+                        <input type="number" id="waist" step="0.1" min="0" placeholder="e.g. 32">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-tape" style="margin-right:5px;color:var(--primary);"></i> Shoulder
+                            (inches)</label>
+                        <input type="number" id="shoulder" step="0.1" min="0" placeholder="e.g. 18">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-tape" style="margin-right:5px;color:var(--primary);"></i> Arm
+                            Length (inches)</label>
+                        <input type="number" id="arm_length" step="0.1" min="0" placeholder="e.g. 25">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-tape" style="margin-right:5px;color:var(--primary);"></i> Pant
+                            Length (inches)</label>
+                        <input type="number" id="pant_length" step="0.1" min="0" placeholder="e.g. 40">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-tape" style="margin-right:5px;color:var(--primary);"></i> Neck
+                            (inches)</label>
+                        <input type="number" id="neck" step="0.1" min="0" placeholder="e.g. 15">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fa-solid fa-sticky-note" style="margin-right:5px;color:var(--primary);"></i>
+                        Additional Notes</label>
+                    <textarea id="notes" rows="3"
+                        placeholder="Any special instructions or notes for the tailor..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary-custom w-100 mt-2" id="saveBtn"
+                    style="justify-content:center;padding:0.9rem;font-size:1rem;">
+                    <i class="fa-solid fa-save"></i> Save Measurements
+                </button>
+            </form>
+        </div>
+
+        <div style="text-align:center;margin-top:1.5rem;">
+            <a href="dashboard.html" class="btn-secondary-custom btn-sm-custom">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await initPage('home', true, ['customer']);
+            if (!user) return;
+
+            // Load existing measurements
+            try {
+                const result = await fetchAPI('measurement.php');
+                if (result.data) {
+                    const m = result.data;
+                    document.getElementById('chest').value = m.chest || '';
+                    document.getElementById('waist').value = m.waist || '';
+                    document.getElementById('shoulder').value = m.shoulder || '';
+                    document.getElementById('arm_length').value = m.arm_length || '';
+                    document.getElementById('pant_length').value = m.pant_length || '';
+                    document.getElementById('neck').value = m.neck || '';
+                    document.getElementById('notes').value = m.notes || '';
+                }
+            } catch (err) {
+                // No measurements saved yet — that's fine
+            }
+
+            // Save measurements
+            document.getElementById('measurementForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('saveBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;"></div> Saving...';
+
+                try {
+                    const result = await fetchAPI('measurement.php', 'POST', {
+                        chest: document.getElementById('chest').value || 0,
+                        waist: document.getElementById('waist').value || 0,
+                        shoulder: document.getElementById('shoulder').value || 0,
+                        arm_length: document.getElementById('arm_length').value || 0,
+                        pant_length: document.getElementById('pant_length').value || 0,
+                        neck: document.getElementById('neck').value || 0,
+                        notes: document.getElementById('notes').value
+                    });
+                    showAlert(result.message, 'success');
+                } catch (err) {
+                    showAlert(err.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-save"></i> Save Measurements';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

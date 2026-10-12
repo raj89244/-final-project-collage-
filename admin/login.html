@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login — Smart Tailor</title>
+    <meta name="description" content="Admin login page for Smart Tailor management.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+
+    <div
+        style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding-top:80px; background:linear-gradient(135deg, #1E293B 0%, #334155 50%, #1E293B 100%);">
+        <div class="form-container" style="width:100%; max-width:450px;">
+            <div class="text-center mb-3">
+                <div
+                    style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1E293B,#475569);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;border:3px solid var(--accent);">
+                    <i class="fa-solid fa-shield-halved" style="font-size:2rem;color:var(--accent);"></i>
+                </div>
+                <h2>Admin Login</h2>
+                <p class="text-muted">Access the Smart Tailor Admin Panel</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <div class="input-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="email" placeholder="admin@tailor.com" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" placeholder="Enter admin password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary-custom w-100" id="loginBtn"
+                    style="justify-content:center; padding:1rem; font-size:1rem; background:linear-gradient(135deg,#1E293B,#475569); box-shadow:0 4px 15px rgba(30,41,59,0.4);">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login as Admin
+                </button>
+            </form>
+
+            <p class="text-center mt-3" style="font-size:0.85rem;">
+                <a href="../login.html" style="font-weight:500;color:var(--gray-light);">
+                    <i class="fa-solid fa-arrow-left" style="margin-right:5px;"></i>Back to User Login
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="../js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initPage('home');
+
+            const user = await checkAuth();
+            if (user && user.role === 'admin') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('loginBtn');
+                btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:3px;margin:0;"></div> Logging in...';
+                btn.disabled = true;
+
+                const data = {
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                };
+
+                try {
+                    const result = await fetchAPI('admin_login.php', 'POST', data);
+                    if (result.success) {
+                        showAlert('Login successful! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = result.data.redirect;
+                        }, 800);
+                    }
+                } catch (err) {
+                    showAlert(err.message, 'error');
+                    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login as Admin';
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
