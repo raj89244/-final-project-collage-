@@ -1,5 +1,5 @@
 -- ============================================
--- Tailor Booking System — Database Schema (v2)
+-- Tailor Booking System — Database Schema (v5)
 -- Run this to create all tables from scratch.
 -- If you already have data you want to keep, use
 -- migrate_v2.sql instead (ALTER statements only).
@@ -31,9 +31,10 @@ CREATE TABLE IF NOT EXISTS tailors (
     services VARCHAR(500) DEFAULT 'Shirt Stitching, Pant Stitching',
     service_prices TEXT DEFAULT NULL,                             -- JSON string mapping service names to custom prices e.g. {"Shirt Stitching": 600, "Pant Stitching": 400}
     category VARCHAR(100) NOT NULL DEFAULT 'Men,Women,Kids',   -- comma-separated: Men,Women,Kids
-    rating DECIMAL(2,1) NOT NULL DEFAULT 4.5,    -- 0.0–5.0, editable by admin (no review system yet)
+    rating DECIMAL(2,1) NOT NULL DEFAULT 4.5,    -- 0.0–5.0
     starting_price DECIMAL(10,2) NOT NULL DEFAULT 300.00,  -- "Starting from ₹X", set by tailor, used for price filter
-    status ENUM('pending', 'active', 'inactive') DEFAULT 'pending',
+    status ENUM('pending', 'active', 'inactive', 'rejected') DEFAULT 'pending',
+    rejection_reason TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -86,6 +87,20 @@ CREATE TABLE IF NOT EXISTS payments (
     transaction_id VARCHAR(100) DEFAULT NULL,
     paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 6. Reviews Table
+CREATE TABLE IF NOT EXISTS reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL UNIQUE,
+    customer_id INT NOT NULL,
+    tailor_id INT NOT NULL,
+    rating DECIMAL(2,1) NOT NULL,
+    comment TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (tailor_id) REFERENCES tailors(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================

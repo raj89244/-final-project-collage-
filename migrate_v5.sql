@@ -1,4 +1,4 @@
--- ============================================
+tailor_booking--============================================
 -- Migration Script — v4 → v5
 -- Adds:
 --   1. tailors.service_prices (JSON string / TEXT mapping service names to tailor custom prices)

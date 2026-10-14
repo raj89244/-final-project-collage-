@@ -12,7 +12,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_NAME = os.environ.get('DB_NAME', 'tailor_booking')
 DB_USER = os.environ.get('DB_USER', 'root')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '123456')
 
 # --- Flask session secret key ---
 # Use a fresh development key per process unless one is supplied explicitly.
