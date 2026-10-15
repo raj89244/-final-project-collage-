@@ -85,6 +85,15 @@ function toggleProfileMenu() {
     }
 }
 
+function toggleMobileNav() {
+    const navLinks = document.getElementById('mobileNav');
+    const toggle = document.getElementById('mobileNavToggle');
+    if (navLinks && toggle) {
+        const isOpen = navLinks.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(isOpen));
+    }
+}
+
 // Close dropdown when clicking outside
 document.addEventListener('click', function (e) {
     const menu = document.getElementById('profileMenu');
@@ -161,7 +170,12 @@ function buildNavbar(user = null, activePage = '') {
                 <a href="${homeLink}" class="navbar-brand">
                     <i class="fa-solid fa-scissors"></i> Smart Tailor
                 </a>
-                <div class="nav-links" style="display:flex; align-items:center; gap:1rem;">
+                <button type="button" class="mobile-nav-toggle" id="mobileNavToggle"
+                    aria-label="Toggle navigation" aria-controls="mobileNav" aria-expanded="false"
+                    onclick="toggleMobileNav()">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="nav-links" id="mobileNav">
                     <a href="${basePath}index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">Home</a>
                     <a href="${basePath}index.html#about" class="nav-link ${activePage === 'about' ? 'active' : ''}">About Us</a>
                     ${navRight}
@@ -212,7 +226,17 @@ async function initPage(activePage = '', requireLogin = false, allowedRoles = []
 
     // Insert navbar & footer
     const navbarEl = document.getElementById('navbar-container');
-    if (navbarEl) navbarEl.innerHTML = buildNavbar(user, activePage);
+    if (navbarEl) {
+        navbarEl.innerHTML = buildNavbar(user, activePage);
+        const mobileNav = navbarEl.querySelector('#mobileNav');
+        const mobileNavToggle = navbarEl.querySelector('#mobileNavToggle');
+        mobileNav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileNav.classList.remove('open');
+                mobileNavToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
 
     const footerEl = document.getElementById('footer-container');
     if (footerEl) footerEl.innerHTML = buildFooter();

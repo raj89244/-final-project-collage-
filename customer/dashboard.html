@@ -54,38 +54,73 @@
             <div class="flex-between p-3" style="border-bottom:1px solid var(--gray-lighter); flex-wrap:wrap; gap:0.8rem;">
                 <h3><i class="fa-solid fa-store" style="color:var(--primary);margin-right:10px;"></i>Available Tailors
                 </h3>
-                <div id="categoryFilter" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn active" data-category="" onclick="filterByCategory('')">All</button>
-                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn" data-category="Men" onclick="filterByCategory('Men')"><i class="fa-solid fa-person"></i> Men</button>
-                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn" data-category="Women" onclick="filterByCategory('Women')"><i class="fa-solid fa-person-dress"></i> Women</button>
-                    <button type="button" class="btn-secondary-custom btn-sm-custom cat-filter-btn" data-category="Kids" onclick="filterByCategory('Kids')"><i class="fa-solid fa-child"></i> Kids</button>
-                </div>
             </div>
 
-            <!-- Full filter system: search, city, rating, price, sort -->
-            <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--gray-lighter); display:flex; gap:0.8rem; flex-wrap:wrap; align-items:center;">
-                <div class="input-icon" style="flex:1; min-width:220px; margin-bottom:0;">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="Search by shop, owner, or service..." oninput="debouncedFilter()">
+            <div class="tailor-search-area">
+                <div class="tailor-filter-toolbar">
+                    <label class="tailor-search-box" for="searchInput">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" id="searchInput" placeholder="Search tailors, shops, or services..." oninput="debouncedFilter()">
+                    </label>
+                    <button type="button" class="tailor-filter-toggle" id="filterToggle"
+                        aria-expanded="false" aria-controls="tailorFilterPanel" onclick="toggleTailorFilters()">
+                        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                        <span>Filters</span>
+                        <span class="filter-count" id="activeFilterCount" hidden>0</span>
+                        <i class="fa-solid fa-chevron-down filter-chevron" aria-hidden="true"></i>
+                    </button>
                 </div>
-                <select id="cityFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:150px;">
-                    <option value="">All Cities</option>
-                </select>
-                <select id="ratingFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:140px;">
-                    <option value="0">Any Rating</option>
-                    <option value="4.5">4.5 &amp; up</option>
-                    <option value="4">4.0 &amp; up</option>
-                    <option value="3">3.0 &amp; up</option>
-                </select>
-                <select id="priceFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:160px;">
-                    <option value="">Any Price</option>
-                </select>
-                <select id="sortFilter" onchange="loadTailors()" style="padding:0.6rem 0.9rem; border-radius:10px; border:1px solid var(--gray-lighter); min-width:160px;">
-                    <option value="">Newest First</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="price_low">Price: Low to High</option>
-                    <option value="price_high">Price: High to Low</option>
-                </select>
+
+                <div class="tailor-filter-panel" id="tailorFilterPanel" hidden>
+                    <div class="filter-panel-heading">
+                        <div>
+                            <h4>Filter tailors</h4>
+                            <p>Choose what matters to you</p>
+                        </div>
+                        <button type="button" class="filter-reset" onclick="resetTailorFilters()">Clear all</button>
+                    </div>
+                    <div class="filter-fields">
+                        <label class="filter-field">
+                            <span>Category</span>
+                            <select id="categoryFilter" onchange="applyTailorFilters()">
+                                <option value="">All categories</option>
+                                <option value="Men">Men</option>
+                                <option value="Women">Women</option>
+                                <option value="Kids">Kids</option>
+                            </select>
+                        </label>
+                        <label class="filter-field">
+                            <span>City</span>
+                            <select id="cityFilter" onchange="applyTailorFilters()">
+                                <option value="">All cities</option>
+                            </select>
+                        </label>
+                        <label class="filter-field">
+                            <span>Minimum rating</span>
+                            <select id="ratingFilter" onchange="applyTailorFilters()">
+                                <option value="0">Any rating</option>
+                                <option value="4.5">4.5 and up</option>
+                                <option value="4">4.0 and up</option>
+                                <option value="3">3.0 and up</option>
+                            </select>
+                        </label>
+                        <label class="filter-field">
+                            <span>Price range</span>
+                            <select id="priceFilter" onchange="applyTailorFilters()">
+                                <option value="">Any price</option>
+                            </select>
+                        </label>
+                        <label class="filter-field filter-field-sort">
+                            <span>Sort by</span>
+                            <select id="sortFilter" onchange="applyTailorFilters()">
+                                <option value="">Newest first</option>
+                                <option value="rating">Highest rated</option>
+                                <option value="price_low">Price: low to high</option>
+                                <option value="price_high">Price: high to low</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div style="padding:1.5rem;">
@@ -144,18 +179,61 @@
         let activeCategory = '';
         let searchDebounceTimer = null;
 
-        function filterByCategory(category) {
-            activeCategory = category;
-            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.category === category);
-            });
+        function toggleTailorFilters(forceOpen) {
+            const panel = document.getElementById('tailorFilterPanel');
+            const toggle = document.getElementById('filterToggle');
+            const isOpen = forceOpen === undefined ? panel.hidden : forceOpen;
+            panel.hidden = !isOpen;
+            toggle.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function applyTailorFilters() {
+            activeCategory = document.getElementById('categoryFilter').value;
+            updateActiveFilterCount();
+            loadTailors();
+        }
+
+        function updateActiveFilterCount() {
+            const filters = [
+                document.getElementById('categoryFilter').value,
+                document.getElementById('cityFilter').value,
+                document.getElementById('ratingFilter').value !== '0',
+                document.getElementById('priceFilter').value,
+                document.getElementById('sortFilter').value
+            ];
+            const count = filters.filter(Boolean).length;
+            const badge = document.getElementById('activeFilterCount');
+            badge.textContent = count;
+            badge.hidden = count === 0;
+        }
+
+        function resetTailorFilters() {
+            clearTimeout(searchDebounceTimer);
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('cityFilter').value = '';
+            document.getElementById('ratingFilter').value = '0';
+            document.getElementById('priceFilter').value = '';
+            document.getElementById('sortFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            activeCategory = '';
+            updateActiveFilterCount();
             loadTailors();
         }
 
         function debouncedFilter() {
             clearTimeout(searchDebounceTimer);
+            updateActiveFilterCount();
             searchDebounceTimer = setTimeout(loadTailors, 400);
         }
+
+        document.addEventListener('click', event => {
+            const area = document.querySelector('.tailor-search-area');
+            if (area && !area.contains(event.target)) toggleTailorFilters(false);
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') toggleTailorFilters(false);
+        });
 
         async function loadFilterOptions() {
             try {
@@ -175,6 +253,7 @@
                     opt.value = p.value; opt.textContent = p.label;
                     priceSelect.appendChild(opt);
                 });
+                updateActiveFilterCount();
             } catch (err) {
                 // Filter dropdowns simply stay at their default options if this fails.
             }
